@@ -1,42 +1,28 @@
-const db = require("../db/connection");
+const knex = require("../db/connection");
+const formatCriticData = require("../utils/mapCriticData");
 
-const tableName = "reviews";
+const update = (newReview) => knex("reviews")
+  .where({ review_id: newReview.review_id })
+  .update(newReview, ["*"])
+  .then(data => data[0]); 
 
-async function destroy(reviewId) {
-  // TODO: Write your code here
-  
-}
+const read = (reviewId) => knex("reviews")
+  .select("*")
+  .where({ review_id: reviewId })
+  .first(); 
 
-async function list(movie_id) {
-  // TODO: Write your code here
-  
-}
+const getCriticById = (criticId) => knex("critics")
+  .select("*")
+  .where({ critic_id: criticId })
+  .first(); 
 
-async function read(reviewId) {
-  // TODO: Write your code here
-  
-}
-
-async function readCritic(critic_id) {
-  return db("critics").where({ critic_id }).first();
-}
-
-async function setCritic(review) {
-  review.critic = await readCritic(review.critic_id);
-  return review;
-}
-
-async function update(review) {
-  return db(tableName)
-    .where({ review_id: review.review_id })
-    .update(review, "*")
-    .then(() => read(review.review_id))
-    .then(setCritic);
-}
+const destroy = (reviewId) => knex("reviews")
+  .where({ review_id: reviewId })
+  .del(); 
 
 module.exports = {
-  destroy,
-  list,
-  read,
   update,
+  read,
+  getCriticById,
+  destroy,
 };

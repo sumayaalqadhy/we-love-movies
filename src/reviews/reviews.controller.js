@@ -1,53 +1,43 @@
-const service = require("./reviews.service");
+const reviewsService = require("./reviews.service");
 const asyncErrorBoundary = require("../errors/asyncErrorBoundary");
-const methodNotAllowed = require("../errors/methodNotAllowed");
 
-async function reviewExists(request, response, next) {
-  // TODO: Write your code here
+const checkReviewExist = async (req, res, next) => {
+  const reviewId = Number(req.params.reviewId); 
+  const foundReview = await reviewsService.read(reviewId);
 
-  next({ });
-}
-
-async function destroy(request, response) {
-  // TODO: Write your code here
-
-}
-
-async function list(request, response) {
-  // TODO: Write your code here
-
-  response.json({  });
-}
-
-function hasMovieIdInPath(request, response, next) {
-  if (request.params.movieId) {
-    return next();
+  if (foundReview) {
+    res.locals.review = foundReview;
+    next();
+  } else {
+    next({
+      status: 404,
+      message: `Review cannot be found for id: ${reviewId}`,
+    });
   }
-  methodNotAllowed(request, response, next);
-}
+};
 
-function noMovieIdInPath(request, response, next) {
-  if (request.params.movieId) {
-    return methodNotAllowed(request, response, next);
-  }
-  next();
-}
+const destroy = async (req, res, next) => {
+  await reviewsService.destroy(Number(req.params.reviewId));
+  res.sendStatus(204);
+};
 
-async function update(request, response) {
-  // TODO: Write your code here
+const update = async (req, res, next) => {
+  const originalReview = res.locals.review;
+  const reviewUpdates = req.body.data;
 
-}
+  const revisedReview = {
+    ...originalReview,
+    ...reviewUpdates,
+  };
+
+  await reviewsService.update(revisedReview);
+  const updatedReviewDetails = await reviewsService.read(revisedReview.review_id);
+  updatedReviewDetails.critic = await reviewsService.getCriticById(revisedReview.critic_id);
+
+  res.json({ data: updatedReviewDetails });
+};
 
 module.exports = {
-  destroy: [
-    noMovieIdInPath,
-    asyncErrorBoundary(reviewExists),
-    asyncErrorBoundary(destroy),
-  ],
-  list: [hasMovieIdInPath, asyncErrorBoundary(list)],
-  update: [
-    noMovieIdInPath,
-    asyncErrorBoundary(reviewExists),
-    asyncErrorBoundary(update),
-  ],
+  update: [asyncErrorBoundary(checkReviewExist), asyncErrorBoundary(update)],
+  delete: [asyncErrorBoundary(checkReviewExist), asyncErrorBoundary(destroy)],
 };
